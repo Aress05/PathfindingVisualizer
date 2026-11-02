@@ -46,10 +46,18 @@ export async function getWasmEngine(): Promise<WasmModule> {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
+    // Risolve il percorso del file .wasm in modo dinamico
+    // Funziona perfettamente sia in locale (localhost), sia su GitHub Pages (/PathfindingVisualizer/)
+    const base = import.meta.env.BASE_URL || './';
+    const cleanBase = base.endsWith('/') ? base : base + '/';
+    const wasmUrl = typeof window !== 'undefined'
+      ? new URL(cleanBase + 'pathfinding.wasm', window.location.href).href
+      : cleanBase + 'pathfinding.wasm';
+
     const mod = await createPathfindingModule({
       locateFile: (path: string) => {
         if (path.endsWith('.wasm')) {
-          return '/pathfinding.wasm';
+          return wasmUrl;
         }
         return path;
       }

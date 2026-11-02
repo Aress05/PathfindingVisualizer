@@ -487,66 +487,72 @@ export default function App() {
 
   // Esecuzione C++ WASM
   const executePathfinding = async () => {
-    stopSimulation();
-    clearVisualization();
+    try {
+      stopSimulation();
+      clearVisualization();
 
-    const result = await runNativePathfinding(
-      algo,
-      cols,
-      rows,
-      walls,
-      weights,
-      start,
-      end,
-      heuristic,
-      allowDiagonal
-    );
+      const result = await runNativePathfinding(
+        algo,
+        cols,
+        rows,
+        walls,
+        weights,
+        start,
+        end,
+        heuristic,
+        allowDiagonal
+      );
 
-    setStats(result);
-    setHistoryRuns((prev) => [result, ...prev.slice(0, 4)]);
+      setStats(result);
+      setHistoryRuns((prev) => [result, ...prev.slice(0, 4)]);
 
-    simulationEvents.current = {
-      visited: result.visited_order,
-      frontier: result.frontier_order,
-      path: result.path
-    };
+      simulationEvents.current = {
+        visited: result.visited_order,
+        frontier: result.frontier_order,
+        path: result.path
+      };
 
-    const totalSteps = result.visited_order.length + result.path.length;
-    setMaxSteps(totalSteps);
-    currentStepRef.current = 0;
-    setTimelineStep(0);
+      const totalSteps = result.visited_order.length + result.path.length;
+      setMaxSteps(totalSteps);
+      currentStepRef.current = 0;
+      setTimelineStep(0);
 
-    isRunningRef.current = true;
-    isPausedRef.current = false;
-    setIsRunning(true);
-    setIsPaused(false);
+      isRunningRef.current = true;
+      isPausedRef.current = false;
+      setIsRunning(true);
+      setIsPaused(false);
 
-    const getBatchAndDelay = () => {
-      if (speedLog === 1) return { batch: 1, delay: 35 };
-      if (speedLog === 2) return { batch: 3, delay: 20 };
-      if (speedLog === 3) return { batch: 8, delay: 12 };
-      if (speedLog === 4) return { batch: 25, delay: 6 };
-      return { batch: 60, delay: 2 };
-    };
+      const getBatchAndDelay = () => {
+        if (speedLog === 1) return { batch: 1, delay: 35 };
+        if (speedLog === 2) return { batch: 3, delay: 20 };
+        if (speedLog === 3) return { batch: 8, delay: 12 };
+        if (speedLog === 4) return { batch: 25, delay: 6 };
+        return { batch: 60, delay: 2 };
+      };
 
-    const stepLoop = () => {
-      if (!isRunningRef.current || isPausedRef.current) return;
+      const stepLoop = () => {
+        if (!isRunningRef.current || isPausedRef.current) return;
 
-      const { batch, delay } = getBatchAndDelay();
-      currentStepRef.current = Math.min(currentStepRef.current + batch, totalSteps);
-      setTimelineStep(currentStepRef.current);
-      drawGrid(currentStepRef.current);
+        const { batch, delay } = getBatchAndDelay();
+        currentStepRef.current = Math.min(currentStepRef.current + batch, totalSteps);
+        setTimelineStep(currentStepRef.current);
+        drawGrid(currentStepRef.current);
 
-      if (currentStepRef.current < totalSteps) {
-        animTimerRef.current = window.setTimeout(stepLoop, delay);
-      } else {
-        isRunningRef.current = false;
-        setIsRunning(false);
-        showToast(result.found ? `Percorso trovato in ${result.execution_time_us.toFixed(1)} µs` : 'Destinazione inaccessibile');
-      }
-    };
+        if (currentStepRef.current < totalSteps) {
+          animTimerRef.current = window.setTimeout(stepLoop, delay);
+        } else {
+          isRunningRef.current = false;
+          setIsRunning(false);
+          showToast(result.found ? `Percorso trovato in ${result.execution_time_us.toFixed(1)} µs` : 'Destinazione inaccessibile');
+        }
+      };
 
-    stepLoop();
+      stepLoop();
+    } catch (err: any) {
+      console.error('Errore esecuzione pathfinding:', err);
+      showToast(`Errore: ${err?.message || err}`);
+      stopSimulation();
+    }
   };
 
   const togglePause = () => {
@@ -780,82 +786,91 @@ export default function App() {
     setIsBenchmarking(true);
     setShowBenchmarkModal(true);
 
-    const algos: Algorithm[] = ['BFS', 'DFS', 'Dijkstra', 'A*', 'Greedy BFS', 'Bi-BFS'];
-    const rowsResults: BenchmarkRow[] = [];
+    try {
+      const algos: Algorithm[] = ['BFS', 'DFS', 'Dijkstra', 'A*', 'Greedy BFS', 'Bi-BFS'];
+      const rowsResults: BenchmarkRow[] = [];
 
-    for (const alg of algos) {
-      const res = await runNativePathfinding(
-        alg,
+      for (const alg of algos) {
+        const res = await runNativePathfinding(
+          alg,
+          cols,
+          rows,
+          walls,
+          weights,
+          start,
+          end,
+          heuristic,
+          allowDiagonal
+        );
+        rowsResults.push({
+          algo: alg,
+          found: res.found,
+          timeUs: res.execution_time_us,
+          nodes: res.nodes_explored,
+          pathLength: res.path.length,
+          cost: res.path_cost
+        });
+      }
+
+      setBenchmarkResults(rowsResults);
+    } catch (err: any) {
+      showToast(`Errore benchmark: ${err?.message || err}`);
+    } finally {
+      setIsBenchmarking(false);
+    }
+  };
+
+  // Benchmark JS vs WASM
+  const runJsVsWasmTest = async () => {
+    try {
+      const wasmRes = await runNativePathfinding(
+        'BFS',
         cols,
         rows,
         walls,
         weights,
         start,
         end,
-        heuristic,
+        'Manhattan',
         allowDiagonal
       );
-      rowsResults.push({
-        algo: alg,
-        found: res.found,
-        timeUs: res.execution_time_us,
-        nodes: res.nodes_explored,
-        pathLength: res.path.length,
-        cost: res.path_cost
-      });
-    }
 
-    setBenchmarkResults(rowsResults);
-    setIsBenchmarking(false);
-  };
-
-  // Benchmark JS vs WASM
-  const runJsVsWasmTest = async () => {
-    const wasmRes = await runNativePathfinding(
-      'BFS',
-      cols,
-      rows,
-      walls,
-      weights,
-      start,
-      end,
-      'Manhattan',
-      allowDiagonal
-    );
-
-    const RUNS = 30;
-    const t0 = performance.now();
-    for (let r = 0; r < RUNS; r++) {
-      const queue: NativePoint[] = [start];
-      const visited = new Uint8Array(cols * rows);
-      visited[start.y * cols + start.x] = 1;
-      let head = 0;
-      while (head < queue.length) {
-        const curr = queue[head++];
-        if (curr.x === end.x && curr.y === end.y) break;
-        const dx = [0, 1, 0, -1];
-        const dy = [-1, 0, 1, 0];
-        for (let i = 0; i < 4; i++) {
-          const nx = curr.x + dx[i];
-          const ny = curr.y + dy[i];
-          if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
-            const idx = ny * cols + nx;
-            if (!visited[idx] && !walls.has(`${nx},${ny}`)) {
-              visited[idx] = 1;
-              queue.push({ x: nx, y: ny });
+      const RUNS = 30;
+      const t0 = performance.now();
+      for (let r = 0; r < RUNS; r++) {
+        const queue: NativePoint[] = [start];
+        const visited = new Uint8Array(cols * rows);
+        visited[start.y * cols + start.x] = 1;
+        let head = 0;
+        while (head < queue.length) {
+          const curr = queue[head++];
+          if (curr.x === end.x && curr.y === end.y) break;
+          const dx = [0, 1, 0, -1];
+          const dy = [-1, 0, 1, 0];
+          for (let i = 0; i < 4; i++) {
+            const nx = curr.x + dx[i];
+            const ny = curr.y + dy[i];
+            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+              const idx = ny * cols + nx;
+              if (!visited[idx] && !walls.has(`${nx},${ny}`)) {
+                visited[idx] = 1;
+                queue.push({ x: nx, y: ny });
+              }
             }
           }
         }
       }
-    }
-    const jsElapsedUs = ((performance.now() - t0) * 1000) / RUNS;
+      const jsElapsedUs = ((performance.now() - t0) * 1000) / RUNS;
 
-    setJsComparison({
-      wasmUs: wasmRes.execution_time_us,
-      jsUs: jsElapsedUs
-    });
-    setRightTab('metrics');
-    showToast(`C++ WASM: ${wasmRes.execution_time_us.toFixed(1)} µs | JS: ${jsElapsedUs.toFixed(1)} µs`);
+      setJsComparison({
+        wasmUs: wasmRes.execution_time_us,
+        jsUs: jsElapsedUs
+      });
+      setRightTab('metrics');
+      showToast(`C++ WASM: ${wasmRes.execution_time_us.toFixed(1)} µs | JS: ${jsElapsedUs.toFixed(1)} µs`);
+    } catch (err: any) {
+      showToast(`Errore test JS vs WASM: ${err?.message || err}`);
+    }
   };
 
   const exportMap = () => {
