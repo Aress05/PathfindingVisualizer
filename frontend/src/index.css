@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  /* Nuova Palette Senior SaaS Design (Linear / Raycast Inspired) */
+  --bg-app:            #090D16;
+  --bg-secondary:      #0E1421;
+  --bg-surface:        #131C2B;
+  --bg-surface-hover:  #1A263B;
+  --bg-surface-active: #202F49;
+  
+  --border-subtle:     #253247;
+  --border-strong:     #344461;
+  --border-focus:      #6366F1;
+
+  --text-primary:      #E8EDF5;
+  --text-secondary:    #8794A8;
+  --text-muted:        #5C6B82;
+
+  --accent-primary:    #6366F1;
+  --accent-hover:      #4F46E5;
+  --accent-subtle:     rgba(99, 102, 241, 0.14);
+  --accent-secondary:  #22D3EE;
+
+  --status-success:    #10B981;
+  --status-warning:    #F59E0B;
+  --status-error:      #F43F5E;
+
+  /* Spaziature 4px / 8px */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Range input styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  background: #1B2639;
+  border-radius: 9999px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #6366F1;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+  transition: transform 0.1s ease, background 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background: #818CF8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
